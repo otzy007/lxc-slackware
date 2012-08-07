@@ -449,6 +449,7 @@ a/grep-2.7-$arch-1.txz \
 a/gzip-1.4-$arch-1.tgz \
 n/iputils-s20101006-$arch-1.txz \
 a/logrotate-3.7.8-$arch-1.txz \
+l/ncurses-5.9-$arch-1.txz \
 n/net-tools-1.60-$arch-3.txz \
 n/network-scripts-13.0-noarch-3.txz \
 n/openssh-5.8p1-$arch-1.txz \
