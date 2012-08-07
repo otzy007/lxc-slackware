@@ -19,5 +19,5 @@ echo 1 > /proc/sys/net/ipv4/conf/br0/proxy_arp
 /usr/sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 
 # examples of redirections
-iptables -t nat -A PREROUTING -p tcp --dport 51 -i eth0 -j DNAT --to 192.168.11.2:51
-iptables -t nat -A PREROUTING -p tcp --dport 80 -i eth0 -j DNAT --to 192.168.11.3:80
+# iptables -t nat -A PREROUTING -p tcp --dport 51 -i eth0 -j DNAT --to 192.168.11.2:51
+# iptables -t nat -A PREROUTING -p tcp --dport 80 -i eth0 -j DNAT --to 192.168.11.3:80
