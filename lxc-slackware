@@ -23,10 +23,10 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-SUITE=${SUITE:-13.37}
+SUITE=${SUITE:-14.0}
 cache=${cache:-/var/cache/lxc/slackware}
 # let's use a secondary mirror to avoid loading the primary
-MIRROR=${MIRROR:-http://www.slackware.at/data}
+MIRROR=${MIRROR:-ftp://mirrors.teentelecom.net/slackware}
 
 if [ -z "$arch" ]; then
 case "$( uname -m )" in
@@ -428,48 +428,48 @@ fi
 # (that I modified a little :P)
 # http://connie.slackware.com/~vbatts/minimal/
 PACKAGES=${PACKAGES:-" \
-a/aaa_base-$SUITE-$arch-3.txz \
-a/aaa_elflibs-$SUITE-$arch-7.txz \
+a/aaa_base-$SUITE-$arch-5.txz \
+a/aaa_elflibs-$SUITE-$arch-4.txz \
 a/aaa_terminfo-5.8-$arch-1.txz \
-a/bash-4.1.010-$arch-1.txz \
+a/bash-4.2.037-$arch-1.txz \
 a/bin-11.1-$arch-1.txz \
 a/bzip2-1.0.6-$arch-1.txz \
-a/coreutils-8.11-$arch-1.txz \
-n/dhcpcd-5.2.11-$arch-1.txz \
+a/coreutils-8.19-$arch-1.txz \
 a/dialog-1.1_20100428-$arch-2.txz \
-ap/diffutils-3.0-$arch-1.txz \
-a/e2fsprogs-1.41.14-$arch-1.txz \
+ap/diffutils-3.2-$arch-1.txz \
+a/e2fsprogs-1.42.6-$arch-1.txz \
 a/elvis-2.2_0-$arch-2.txz \
-a/etc-13.013-$arch-1.txz \
+a/etc-14.0-$arch-1.txz \
 a/findutils-4.4.2-$arch-1.txz \
 a/gawk-3.1.8-$arch-1.txz \
-a/glibc-solibs-2.13-$arch-4.txz \
-n/gnupg-1.4.11-$arch-1.txz \
-a/grep-2.7-$arch-1.txz \
-a/gzip-1.4-$arch-1.tgz \
-n/iputils-s20101006-$arch-1.txz \
-a/logrotate-3.7.8-$arch-1.txz \
+a/glibc-solibs-2.15-$arch-7.txz \
+n/gnupg-1.4.12-$arch-1.txz \
+a/grep-2.14-$arch-1.txz \
+a/gzip-1.5-$arch-1.txz \
+n/iputils-s20101006-$arch-2.txz \
+a/logrotate-3.8.2-$arch-1.txz \
 l/ncurses-5.9-$arch-1.txz \
-n/net-tools-1.60-$arch-3.txz \
-n/network-scripts-13.0-noarch-3.txz \
-n/openssh-5.8p1-$arch-1.txz \
-a/openssl-solibs-0.9.8r-$arch-3.txz \
-a/pkgtools-$SUITE-noarch-9.tgz \
+n/dhcpcd-5.5.6-$arch-1.txz \
+n/net-tools-1.60.20120726git-$arch-1.txz \
+n/network-scripts-14.00-noarch-3.txz \
+n/openssh-6.1p1-$arch-1.txz \
+a/openssl-solibs-1.0.1c-$arch-3.txz \
+a/pkgtools-$SUITE-noarch-2.tgz \
 a/procps-3.2.8-$arch-3.txz \
 a/sed-4.2.1-$arch-1.txz \
-a/shadow-4.1.4.3-$arch-2.txz \
+a/shadow-4.1.4.3-$arch-7.txz \
 a/sharutils-4.11-$arch-1.txz \
-ap/slackpkg-2.82.0-noarch-5.tgz \
+ap/slackpkg-2.82.0-noarch-8.tgz \
 a/sysklogd-1.5-$arch-1.txz \
-a/sysvinit-2.86-$arch-6.txz \
+a/sysvinit-2.88dsf-$arch-2.txz \
 a/sysvinit-functions-8.53-$arch-2.txz \
-a/sysvinit-scripts-1.2-noarch-43.txz \
+a/sysvinit-scripts-2.0-noarch-13.txz \
 a/tar-1.26-$arch-1.tgz \
-a/udev-165-$arch-2.txz \
-a/util-linux-2.19-$arch-1.txz \
-n/wget-1.12-$arch-1.txz \
+a/udev-182-$arch-5.txz \
+a/util-linux-2.21.2-$arch-5.txz \
+n/wget-1.14-$arch-1.txz \
 a/which-2.20-$arch-1.txz \
-a/xz-5.0.2-$arch-1.tgz"}
+a/xz-5.0.4-$arch-1.tgz"}
 
 # check if the slackware packages are already downloaded
 mkdir -p "$cache/partial-$SUITE-$arch"
