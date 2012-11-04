@@ -124,8 +124,8 @@ chmod -x $rootfs/etc/rc.d/rc.{udev,loop}
 # simplify rc.6 and rc.S, http://www.vislab.uq.edu.au/howto/lxc/create_container.html
 # and some other small fixes for a clean boot
 cat >$rootfs/tmp/rcs.patch <<'EOF'
---- ./etc/rc.d/rc.S.orig	2011-07-20 10:18:27.956637848 +0200
-+++ ./etc/rc.d/rc.S	2011-07-20 11:14:26.553649659 +0200
+--- ./etc/rc.d/rc.S.new	2012-09-13 22:38:34.000000000 +0300
++++ ./etc/rc.d/rc.S	2012-10-08 22:16:55.452078903 +0300
 @@ -4,9 +4,18 @@
  #
  # Mostly written by:  Patrick J. Volkerding, <volkerdi@slackware.com>
@@ -145,34 +145,106 @@ cat >$rootfs/tmp/rcs.patch <<'EOF'
  # Try to mount /proc:
  /sbin/mount -v proc /proc -n -t proc 2> /dev/null
  
-@@ -250,16 +259,27 @@
+@@ -19,27 +28,21 @@
+   fi
+ fi
+ 
+-# If /run exists, mount a tmpfs on it (unless the
+-# initrd has already done so):
+-if [ -d /run ]; then
+-  if ! grep -wq "tmpfs /run tmpfs" /proc/mounts ; then
+-    /sbin/mount -v -n -t tmpfs tmpfs /run -o mode=0755
+-  fi
+-fi
+-
+ # Load the loop device kernel module:
+ if [ -x /etc/rc.d/rc.loop ]; then
+   . /etc/rc.d/rc.loop start
+ fi
+ 
+-# Initialize udev to manage /dev entries and hotplugging for 3.x kernels.
++# Initialize udev to manage /dev entries and hotplugging for 2.6.x kernels.
+ # You may turn off udev by making the /etc/rc.d/rc.udev file non-executable
+-# or giving the "nohotplug" option at boot, but realize that if you turn off
+-# udev that you will have to load all the kernel modules that you need
+-# yourself (possibly in /etc/rc.d/rc.modules, which does not promise to list
+-# all of them), and make any additional device nodes that you need in the
+-# /dev directory.  Even USB and IEEE1394 devices will need to have the
+-# modules loaded by hand if udev is not used.  So use it.  :-)
++# or giving the "nohotplug" option at boot, but in the 2.6.x+ kernels udev
++# has taken over the job of hotplug (finding hardware and loading the kernel
++# modules for it, as well as creating device nodes in /dev).  Realize that
++# if you turn off udev that you will have to load all the kernel modules
++# that you need yourself (possibly in /etc/rc.d/rc.modules, which does not
++# promise to list all of them), and make any additional device nodes that you
++# need in the /dev directory.  Even USB and IEEE1394 devices will need to have
++# the modules loaded by hand if udev is not used with a 2.6 kernel.  So use it.  :-)
+ if grep -wq sysfs /proc/mounts && grep -q tmpfs /proc/filesystems ; then
+   if ! grep -wq nohotplug /proc/cmdline ; then
+     if [ -x /etc/rc.d/rc.udev ]; then
+@@ -109,7 +112,10 @@
+           echo "${PASS}" | /sbin/cryptsetup ${LUKSOPTS} luksOpen $DEV $LUKS
+         fi
+       else
+-        /sbin/cryptsetup ${LUKSOPTS} luksOpen $DEV $LUKS </dev/tty0 >/dev/tty0 2>&1
++        for i in seq 1 3 ; do
++          /sbin/cryptsetup ${LUKSOPTS} luksOpen $DEV $LUKS </dev/tty0 >/dev/tty0 2>&1
++          [ $? -eq 0 ] && break
++        done
+       fi
+     elif echo $OPTS | grep -wq swap ; then
+       # If any of the volumes is to be used as encrypted swap,
+@@ -137,13 +143,12 @@
+     CLOCK_OPT="--directisa"
+   fi
+   if grep -wq "^UTC" /etc/hardwareclock ; then
+-    echo -n "Setting system time from the hardware clock (UTC): "
++    echo "Setting system time from the hardware clock (UTC)."
+     /sbin/hwclock $CLOCK_OPT --utc --hctosys
+   else
+-    echo -n "Setting system time from the hardware clock (localtime): "
++    echo "Setting system time from the hardware clock (localtime)."
+     /sbin/hwclock $CLOCK_OPT --localtime --hctosys
+   fi
+-  date
+ fi
+ 
+ # Test to see if the root partition is read-only, like it ought to be.
+@@ -254,14 +259,29 @@
    read junk;
  fi # Done checking root filesystem
  
 +fi # end container check
 +
- # Any /etc/mtab that exists here is old, so we delete it to start over:
- /bin/rm -f /etc/mtab*
-+
++# Any /etc/mtab that exists here is old, so we delete it to start over:
++/bin/rm -f /etc/mtab*
+ 
+-# Any /etc/mtab that exists here is old, so we start with a new one:
+-/bin/rm -f /etc/mtab{,~,.tmp} && /bin/touch /etc/mtab
 +# container check
 +if [ ! $CONTAINER ]; then
-+
- # Remounting the / partition will initialize the new /etc/mtab:
- /sbin/mount -w -o remount /
  
+-# Add entry for / to /etc/mtab:
+-/sbin/mount -f -w /
++# Remounting the / partition will initialize the new /etc/mtab:
++/sbin/mount -w -o remount /
+ 
+-# Add /proc and /sys mounts to /etc/mtab:
 +fi # end container check
 +
- # Read in the correct / filesystem complete with arguments so mount will
- # show them correctly. This does not stop those arguments from functioning
- # but does prevent a small bug with /etc/mtab.
- /bin/grep ' / ' /proc/mounts | grep -v "^rootfs" > /etc/mtab
- 
++# Read in the correct / filesystem complete with arguments so mount will
++# show them correctly. This does not stop those arguments from functioning
++# but does prevent a small bug with /etc/mtab.
++/bin/grep ' / ' /proc/mounts | grep -v "^rootfs" > /etc/mtab
++
 +# container check
 +if [ ! $CONTAINER ]; then
 +
- # Fix /etc/mtab to list sys and proc if they were not yet entered in
- # /etc/mtab because / was still mounted read-only:
++# Fix /etc/mtab to list sys and proc if they were not yet entered in
++# /etc/mtab because / was still mounted read-only:
  if [ -d /proc/sys ]; then
+   /sbin/mount -f proc /proc -t proc
+ fi
 @@ -337,6 +357,8 @@
  # mounted read-write.
  /sbin/swapon -a 2> /dev/null
@@ -210,194 +282,6 @@ cat >$rootfs/tmp/rcs.patch <<'EOF'
  # Carry an entropy pool between reboots to improve randomness.
  if [ -f /etc/random-seed ]; then
    echo "Using /etc/random-seed to initialize /dev/urandom."
---- ./etc/rc.d/rc.6.orig	2011-07-20 10:18:24.478681336 +0200
-+++ ./etc/rc.d/rc.6	2011-07-20 11:14:26.553649659 +0200
-@@ -9,6 +9,12 @@
- # Author:	Miquel van Smoorenburg <miquels@drinkel.nl.mugnet.org>
- # Modified by:  Patrick J. Volkerding, <volkerdi@slackware.com>
- #
-+# tweaks for an lxc container by ponce <matteo.bernardini@gmail.com>,
-+# based also on Chris Willing's modifications
-+# http://www.vislab.uq.edu.au/howto/lxc/rc.6
-+# a check for a container variable is made to jump unneeded sections
-+
-+CONTAINER=yes
- 
- # Set the path.
- PATH=/sbin:/etc:/bin:/usr/bin
-@@ -37,6 +43,9 @@
- 		;;
- esac
- 
-+# container check
-+if [ ! $CONTAINER ]; then
-+
- # Save the system time to the hardware clock using hwclock --systohc.
- if [ -x /sbin/hwclock ]; then
-   # Check for a broken motherboard RTC clock (where ioports for rtc are
-@@ -53,6 +62,8 @@
-   fi
- fi
- 
-+fi # end container check
-+
- # Run any local shutdown scripts:
- if [ -x /etc/rc.d/rc.local_shutdown ]; then
-   /etc/rc.d/rc.local_shutdown stop
-@@ -141,6 +152,9 @@
-   sleep 2
- fi
- 
-+# container check
-+if [ ! $CONTAINER ]; then
-+
- # Shut down PCMCIA devices:
- if [ -x /etc/rc.d/rc.pcmcia ]; then
-   . /etc/rc.d/rc.pcmcia stop
-@@ -148,16 +162,23 @@
-   /bin/sleep 5
- fi
- 
-+fi # end container check
-+
- # Turn off process accounting:
- if [ -x /sbin/accton -a -r /var/log/pacct ]; then
-   /sbin/accton off
- fi
- 
-+# container check
-+if [ ! $CONTAINER ]; then
-+
- # Terminate acpid before syslog:
- if [ -x /etc/rc.d/rc.acpid -a -r /var/run/acpid.pid ]; then # quit
-   . /etc/rc.d/rc.acpid stop
- fi
- 
-+fi # end container check
-+
- # Kill all processes.
- # INIT is supposed to handle this entirely now, but this didn't always
- # work correctly without this second pass at killing off the processes.
-@@ -169,6 +190,9 @@
-   /sbin/killall5 -9
- fi
- 
-+# container check
-+if [ ! $CONTAINER ]; then
-+
- # Try to turn off quota.
- if /bin/grep -q quota /etc/fstab ; then
-   if [ -x /sbin/quotaoff ]; then
-@@ -177,6 +201,8 @@
-   fi
- fi
- 
-+fi # end container check
-+
- # Carry a random seed between reboots.
- echo "Saving random seed from /dev/urandom in /etc/random-seed."
- # Use the pool size from /proc, or 512 bytes:
-@@ -195,6 +221,9 @@
-   rm -f /var/lock/subsys/*
- fi
- 
-+# container check
-+if [ ! $CONTAINER ]; then
-+
- # Turn off swap:
- echo "Turning off swap."
- /sbin/swapoff -a
-@@ -206,9 +235,14 @@
- echo "Remounting root filesystem read-only."
- /bin/mount -v -n -o remount,ro /
- 
-+fi # end container check
-+
- # This never hurts:
- /bin/sync
- 
-+# container check
-+if [ ! $CONTAINER ]; then
-+
- # Close any volumes opened by cryptsetup:
- if [ -f /etc/crypttab -a -x /sbin/cryptsetup ]; then
-   cat /etc/crypttab | grep -v "^#" | grep -v "^$" | while read line; do
-@@ -272,3 +306,8 @@
-   /sbin/poweroff
- fi
- 
-+fi # end container check
-+
-+# confirm successful shutdown
-+echo ; echo "* container stopped. *" ; echo
-+
---- ./etc/rc.d/rc.M.orig	2011-07-20 11:13:38.332252512 +0200
-+++ ./etc/rc.d/rc.M	2011-07-20 13:22:23.206678301 +0200
-@@ -10,6 +10,10 @@
- # Author:	Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
- #		Heavily modified by Patrick Volkerding <volkerdi@slackware.com>
- #
-+# tweaks for an lxc container by ponce <matteo.bernardini@gmail.com>,
-+# a check for a CONTAINER variable is made to jump unneeded sections
-+
-+CONTAINER=yes
- 
- # Tell the viewers what's going to happen.
- echo "Going multiuser..."
-@@ -20,6 +24,9 @@
-   /sbin/ldconfig &
- fi
- 
-+# container check
-+if [ ! $CONTAINER ]; then
-+
- # Screen blanks after 15 minutes idle time, and powers down in one hour
- # if the kernel supports APM or ACPI power management:
- /bin/setterm -blank 15 -powersave powerdown -powerdown 60
-@@ -33,6 +40,8 @@
-   /bin/hostname darkstar
- fi
- 
-+fi # end container check
-+
- # Set the permissions on /var/log/dmesg according to whether the kernel
- # permits non-root users to access kernel dmesg information:
- if [ -r /proc/sys/kernel/dmesg_restrict ]; then
---- ./etc/rc.d/rc.inet1.orig	2011-07-20 11:13:56.671023244 +0200
-+++ ./etc/rc.d/rc.inet1	2011-07-20 11:14:26.553649659 +0200
-@@ -3,6 +3,11 @@
- # This script is used to bring up the various network interfaces.
- #
- # @(#)/etc/rc.d/rc.inet1 10.2  Sun Jul 24 12:45:56 PDT 2005  (pjv)
-+#
-+# tweaks for an lxc container by ponce <matteo.bernardini@gmail.com>,
-+# a check for a CONTAINER variable is made to jump unneeded sections
-+
-+CONTAINER=yes
- 
- ############################
- # READ NETWORK CONFIG FILE #
-@@ -82,6 +87,10 @@
-     [ "${IFNAME[$i]}" = "${1}" ] && break
-     i=$(($i+1))
-   done
-+
-+  # container check
-+  if [ ! $CONTAINER ]; then
-+
-   # If the interface isn't in the kernel yet (but there's an alias for it in
-   # modules.conf), then it should be loaded first:
-   if ! grep `echo ${1}: | cut -f 1 -d :`: /proc/net/dev 1> /dev/null ; then # no interface yet
-@@ -90,6 +99,9 @@
-       /sbin/modprobe ${1}
-     fi
-   fi
-+
-+  fi # end container check
-+
-   if grep `echo ${1}: | cut -f 1 -d :`: /proc/net/dev 1> /dev/null ; then # interface exists
-     if ! /sbin/ifconfig | grep -w "${1}" 1>/dev/null || \
-       ! /sbin/ifconfig ${1} | grep "inet addr" 1> /dev/null ; then # interface not up or not configured
 EOF
 ( cd $rootfs ; patch -s -p1 < tmp/rcs.patch ; rm tmp/rcs.patch )
 
